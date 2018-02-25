@@ -1,20 +1,27 @@
-package com.onheiron.rx_pokemon;
+package com.onheiron.rx_pokemon.controls;
 
 import com.badlogic.gdx.Input;
+import com.onheiron.rx_pokemon.movement.Position;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import io.reactivex.functions.Consumer;
+
 /**
  * Created by carlo on 21/02/2018.
  */
-
+@Singleton
 public class PlayerControls {
 
     private final Stack<Control> directionalCommandsStack = new Stack<Control>();
-    private Position.Direction lastDirection = Position.Direction.DOWN;
-    private MovementMode movementModeCommand = MovementMode.WALK;
+    private com.onheiron.rx_pokemon.movement.Position.Direction lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.DOWN;
+    private com.onheiron.rx_pokemon.movement.MovementMode movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.WALK;
     private boolean onBike, requestInteraction;
     private final Map<Integer, Control> keyMap = new HashMap<Integer, Control>() {{
         put(Input.Keys.W, Control.MOVE_UP);
@@ -24,6 +31,21 @@ public class PlayerControls {
         put(Input.Keys.SPACE, Control.RUN);
         put(Input.Keys.E, Control.INTERACT);
     }};
+
+    @Inject
+    public PlayerControls(ControlsSource controlsSource) {
+        controlsSource.observeControls(new ArrayList<Integer>(keyMap.keySet()))
+                .subscribe(new Consumer<ControlsSource.ControlEvent>() {
+                    @Override
+                    public void accept(ControlsSource.ControlEvent controlEvent) throws Exception {
+                        if(controlEvent.keyDown) {
+                            keyPressed(controlEvent.key);
+                        } else {
+                            keyReleased(controlEvent.key);
+                        }
+                    }
+                });
+    }
 
     public void keyPressed(int keyCode) {
         Control requestedControl = keyMap.get(keyCode);
@@ -37,7 +59,7 @@ public class PlayerControls {
                 updateDirection();
                 break;
             case RUN:
-                movementModeCommand = MovementMode.RUN;
+                movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.RUN;
                 break;
             case TOGGLE_BIKE:
                 onBike = !onBike;
@@ -69,7 +91,7 @@ public class PlayerControls {
                 }
                 break;
             case RUN:
-                movementModeCommand = MovementMode.WALK;
+                movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.WALK;
                 break;
             case INTERACT:
                 requestInteraction = false;
@@ -81,22 +103,22 @@ public class PlayerControls {
         if(directionalCommandsStack.isEmpty()) return;
         switch (directionalCommandsStack.peek()) {
             case MOVE_UP:
-                lastDirection = Position.Direction.UP;
+                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.UP;
                 break;
             case MOVE_DOWN:
-                lastDirection = Position.Direction.DOWN;
+                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.DOWN;
                 break;
             case MOVE_LEFT:
-                lastDirection = Position.Direction.LEFT;
+                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.LEFT;
                 break;
             case MOVE_RIGHT:
-                lastDirection = Position.Direction.RIGHT;
+                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.RIGHT;
                 break;
         }
     }
 
-    public MovementMode getRequestedMovementMode() {
-        return shouldMove() ? movementModeCommand : MovementMode.IDLE;
+    public com.onheiron.rx_pokemon.movement.MovementMode getRequestedMovementMode() {
+        return shouldMove() ? movementModeCommand : com.onheiron.rx_pokemon.movement.MovementMode.IDLE;
     }
 
     public boolean gerRequestedInteraction() {

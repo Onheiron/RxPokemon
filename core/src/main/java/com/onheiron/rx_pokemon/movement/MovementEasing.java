@@ -1,4 +1,4 @@
-package com.onheiron.rx_pokemon;
+package com.onheiron.rx_pokemon.movement;
 
 /**
  * Created by carlo on 21/02/2018.
@@ -30,6 +30,10 @@ public class MovementEasing {
     }
 
     public int get() {
+        return Math.round(current);
+    }
+
+    public int moveAndGet() {
         if (isDone()) return to;
         current += step;
         return Math.round(current);

@@ -1,4 +1,6 @@
-package com.onheiron.rx_pokemon;
+package com.onheiron.rx_pokemon.character;
+
+import com.onheiron.rx_pokemon.movement.MovementMode;
 
 import org.mini2Dx.core.graphics.Sprite;
 

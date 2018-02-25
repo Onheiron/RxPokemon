@@ -1,4 +1,4 @@
-package com.onheiron.rx_pokemon;
+package com.onheiron.rx_pokemon.movement;
 
 import org.mini2Dx.tiled.TileLayer;
 
@@ -29,11 +29,13 @@ public class Position {
 
     public Position(TileLayer accesibleTilesLayer, int identifier, int x, int y) {
         this.identifier = identifier;
-        currentTileOriginalId = identifier;
         this.accesibleTilesLayer = accesibleTilesLayer;
         this.x = x;
         this.y = y;
-        this.currentTileOriginalId = accesibleTilesLayer.getTileId(x/TILE_SIZE, y/TILE_SIZE);
+        int tileX = Math.round(((float) x / TILE_SIZE));
+        int tileY = Math.round(((float) y / TILE_SIZE));
+        this.currentTileOriginalId = accesibleTilesLayer.getTileId(tileX, tileY);
+        System.out.println("ID "+ currentTileOriginalId);
         detectSurroundings();
         updateTilesIds(x, y, x, y);
     }
@@ -68,18 +70,18 @@ public class Position {
     }
 
     private void updateTilesIds(int preX, int preY, int x, int y) {
-        int tilePreX = Math.round(((float) preX / TILE_SIZE)) + 8;
-        int tilePreY = Math.round(((float) preY / TILE_SIZE)) + 7;
-        int tileX = Math.round(((float) x / TILE_SIZE)) + 8;
-        int tileY = Math.round(((float) y / TILE_SIZE)) + 7;
+        int tilePreX = Math.round(((float) preX / TILE_SIZE));
+        int tilePreY = Math.round(((float) preY / TILE_SIZE));
+        int tileX = Math.round(((float) x / TILE_SIZE));
+        int tileY = Math.round(((float) y / TILE_SIZE));
         accesibleTilesLayer.setTileId(tilePreX, tilePreY, currentTileOriginalId);
         currentTileOriginalId = accesibleTilesLayer.getTileId(tileX, tileY);
         accesibleTilesLayer.setTileId(tileX, tileY, identifier);
     }
 
     private void detectSurroundings() {
-        int tileX = Math.round(((float) x / TILE_SIZE)) + 8;
-        int tileY = Math.round(((float) y / TILE_SIZE)) + 7;
+        int tileX = Math.round(((float) x / TILE_SIZE));
+        int tileY = Math.round(((float) y / TILE_SIZE));
         sorroundingTilesIds.put(Direction.LEFT, accesibleTilesLayer.getTileId(tileX - 1, tileY));
         sorroundingTilesIds.put(Direction.RIGHT, accesibleTilesLayer.getTileId(tileX + 1, tileY));
         sorroundingTilesIds.put(Direction.UP, accesibleTilesLayer.getTileId(tileX, tileY - 1));
