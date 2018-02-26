@@ -2,8 +2,8 @@ package com.onheiron.rx_pokemon.game;
 
 import com.onheiron.rx_pokemon.camera.PlayerCamera;
 import com.onheiron.rx_pokemon.character.CharacterFactory;
-import com.onheiron.rx_pokemon.character.StillCharacter;
 import com.onheiron.rx_pokemon.controls.ControlsSource;
+import com.onheiron.rx_pokemon.map.MapCoordinator;
 import com.onheiron.rx_pokemon.map.TiledLayerRenderer;
 import com.onheiron.rx_pokemon.movement.MovementMode;
 import com.onheiron.rx_pokemon.player.Player;
@@ -34,6 +34,7 @@ public class RxPokemonGame extends BasicGame implements RenderSource, ControlsSo
     @Inject PlayerCamera playerCamera;
     @Inject TiledLayerRenderer tiledLayerRenderer;
     @Inject CharacterFactory characterFactory;
+    @Inject MapCoordinator mapCoordinator;
 
     @Override
     public void initialise() {
@@ -44,7 +45,7 @@ public class RxPokemonGame extends BasicGame implements RenderSource, ControlsSo
         characterFactory.getStillChatacter(new HashMap<MovementMode, String>() {{
             put(MovementMode.WALK, "phone001.png");
             put(MovementMode.RUN, "boy_run.png");
-        }}, 3, 13696, 13696);
+        }}, 13696, 13696);
     }
 
     @Override
@@ -69,12 +70,14 @@ public class RxPokemonGame extends BasicGame implements RenderSource, ControlsSo
 
     @Override
     public void render(Graphics g) {
-        renderSubject.onNext(new GraphicUpdate("camera", g));
-        renderSubject.onNext(new GraphicUpdate("ground", g));
-        renderSubject.onNext(new GraphicUpdate("objects", g));
-        renderSubject.onNext(new GraphicUpdate("characters", g));
-        renderSubject.onNext(new GraphicUpdate("overlay_1", g));
-        renderSubject.onNext(new GraphicUpdate("overlay_2", g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("doors"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("camera"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("ground"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("objects"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("characters"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("overlay_1"), g));
+        renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("overlay_2"), g));
+        //renderSubject.onNext(new GraphicUpdate(mapCoordinator.getCurrentMap().getTileLayer("walkable"), g));
     }
 
     @Override
@@ -82,7 +85,7 @@ public class RxPokemonGame extends BasicGame implements RenderSource, ControlsSo
         return renderSubject.filter(new Predicate<GraphicUpdate>() {
             @Override
             public boolean test(GraphicUpdate graphicUpdate) throws Exception {
-                return layersNames.contains(graphicUpdate.layer);
+                return layersNames.contains(graphicUpdate.layer.getName());
             }
         });
     }

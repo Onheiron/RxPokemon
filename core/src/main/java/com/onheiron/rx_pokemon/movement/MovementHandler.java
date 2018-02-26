@@ -2,11 +2,13 @@ package com.onheiron.rx_pokemon.movement;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.onheiron.rx_pokemon.map.MapCoordinator;
 
 import org.mini2Dx.core.graphics.Sprite;
 import org.mini2Dx.core.graphics.TextureRegion;
 import org.mini2Dx.tiled.TileLayer;
 
+import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,8 +27,8 @@ public class MovementHandler {
     protected final PositionEasing positionEasing;
     private int stepAnimationStep = 0;
 
-    public MovementHandler(TileLayer movementLayer, Map<MovementMode, String> movementAssetsPaths, int identifier, int x, int y) {
-        this.positionEasing = new PositionEasing(new Position(movementLayer, identifier, x, y));
+    public MovementHandler(MapCoordinator mapCoordinator, Map<MovementMode, String> movementAssetsPaths, Position.WalkableType type, int x, int y) {
+        this.positionEasing = new PositionEasing(new Position(mapCoordinator, type, x, y));
         for (MovementMode movementMode : movementAssetsPaths.keySet()) {
             movementSprites.put(movementMode, new Sprite(new Texture(Gdx.files.internal(movementAssetsPaths.get(movementMode))),
                     CHARACHTER_PIXEL_WIDTH, CHARACHTER_PIXEL_HEIGHT));
@@ -45,6 +47,12 @@ public class MovementHandler {
         positionEasing.move(requestedMovementMode, requestedDirection);
     }
 
+    public void warp(Point point) {
+        stepStep = 0;
+        stepAnimationStep = 0;
+        positionEasing.warp(point);
+    }
+
     public TextureRegion getCurrentTextureRegion() {
         if (movementMode != MovementMode.IDLE) {
             Texture textureToDraw = movementSprites.get(movementMode).getTexture();
@@ -55,8 +63,8 @@ public class MovementHandler {
         }
     }
 
-    public int getFacingTileId() {
-        return positionEasing.getFacingTileId();
+    public Position.WalkableType getFacingTileType() {
+        return positionEasing.getFacingTileType();
     }
 
     public float getX() {

@@ -1,6 +1,7 @@
 package com.onheiron.rx_pokemon.render;
 
 import org.mini2Dx.core.graphics.Graphics;
+import org.mini2Dx.tiled.TileLayer;
 
 import java.util.List;
 
@@ -15,10 +16,10 @@ public interface RenderSource {
     Observable<GraphicUpdate> observeLayer(List<String> layersNames);
 
     class GraphicUpdate {
-        public final String layer;
+        public final TileLayer layer;
         public final Graphics graphics;
 
-        public GraphicUpdate(String layer, Graphics graphics) {
+        public GraphicUpdate(TileLayer layer, Graphics graphics) {
             this.layer = layer;
             this.graphics = graphics;
         }

@@ -1,19 +1,23 @@
 package com.onheiron.rx_pokemon.movement;
 
+import com.onheiron.rx_pokemon.ValueEasing;
+
+import java.awt.Point;
+
 /**
  * Created by carlo on 21/02/2018.
  */
 
 public class PositionEasing {
-    MovementEasing xEasing;
-    MovementEasing yEasing;
+    ValueEasing xEasing;
+    ValueEasing yEasing;
     private final Position position;
     private Position.Direction direction = Position.Direction.DOWN;
 
     public PositionEasing(Position position) {
         this.position = position;
-        xEasing = new MovementEasing(position.getX());
-        yEasing = new MovementEasing(position.getY());
+        xEasing = new ValueEasing(position.getX());
+        yEasing = new ValueEasing(position.getY());
     }
 
     public boolean move(MovementMode requestedMovementMode, Position.Direction requestedDirection) {
@@ -22,11 +26,17 @@ public class PositionEasing {
         int fromX = position.getX();
         int fromY = position.getY();
         if(requestedMovementMode != MovementMode.IDLE && position.move(requestedDirection)) {
-            xEasing = new MovementEasing(fromX, position.getX(), (int) (32.f / requestedMovementMode.speed));
-            yEasing = new MovementEasing(fromY, position.getY(), (int) (32.f / requestedMovementMode.speed));
+            xEasing = new ValueEasing(fromX, position.getX(), (int) (32.f / requestedMovementMode.speed));
+            yEasing = new ValueEasing(fromY, position.getY(), (int) (32.f / requestedMovementMode.speed));
             return true;
         }
         return false;
+    }
+
+    public void warp(Point point) {
+        position.warp(point);
+        xEasing = new ValueEasing(position.getX());
+        yEasing = new ValueEasing(position.getY());
     }
 
     public int getX() {
@@ -38,19 +48,19 @@ public class PositionEasing {
     }
 
     public int moveAndGetX() {
-        return xEasing.moveAndGet();
+        return xEasing.updateAndGet();
     }
 
     public int moveAndGetY() {
-        return yEasing.moveAndGet();
+        return yEasing.updateAndGet();
     }
 
     public Position.Direction getDirection() {
         return direction;
     }
 
-    public int getFacingTileId() {
-        return position.getTileIdInDirection(getDirection());
+    public Position.WalkableType getFacingTileType() {
+        return position.getTileTypeInDirection(getDirection());
     }
 
     public boolean isMoving() {

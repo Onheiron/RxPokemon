@@ -1,7 +1,10 @@
 package com.onheiron.rx_pokemon.movement;
 
+import com.onheiron.rx_pokemon.map.MapCoordinator;
+
 import org.mini2Dx.tiled.TileLayer;
 
+import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,31 +16,16 @@ public class Position {
 
     public final static int TILE_SIZE = 32;
 
-    private final int UNACCESSIBLE_BLOCK_ID = 0;
-    private final int WALKABLE_BLOCK_ID = 13505;
-    private final int SURFABLE_BLOCK_ID = 13506;
-    private final int UP_DOWN_BLOCK_ID = 13509;
-    private final int RIGHT_LEFT_BLOCK_ID = 13510;
-    private final int LEFT_RIGHT_BLOCK_ID = 13511;
-    private final int DOWN_UP_BLOCK_ID = 13512;
-
     private int x,y;
-    private int currentTileOriginalId;
-    private final int identifier;
-    private final TileLayer accesibleTilesLayer;
-    private final Map<Direction, Integer> sorroundingTilesIds = new HashMap<Direction, Integer>();
+    private WalkableType currentTileOriginalType;
+    private final WalkableType type;
+    private final MapCoordinator mapCoordinator;
+    private final Map<Direction, WalkableType> sorroundingTilesTypes = new HashMap<Direction, WalkableType>();
 
-    public Position(TileLayer accesibleTilesLayer, int identifier, int x, int y) {
-        this.identifier = identifier;
-        this.accesibleTilesLayer = accesibleTilesLayer;
-        this.x = x;
-        this.y = y;
-        int tileX = Math.round(((float) x / TILE_SIZE));
-        int tileY = Math.round(((float) y / TILE_SIZE));
-        this.currentTileOriginalId = accesibleTilesLayer.getTileId(tileX, tileY);
-        System.out.println("ID "+ currentTileOriginalId);
-        detectSurroundings();
-        updateTilesIds(x, y, x, y);
+    public Position(MapCoordinator mapCoordinator, WalkableType type, int x, int y) {
+        this.type = WalkableType.walkable;
+        this.mapCoordinator = mapCoordinator;
+        warp(new Point(x, y));
     }
 
     protected boolean move(Direction direction) {
@@ -60,47 +48,49 @@ public class Position {
                     x += TILE_SIZE * movementSpan;
                     break;
             }
-            updateTilesIds(preX, preY, x, y);
+            updateTilesTypes(preX, preY, x, y);
         }
         return movementSpan > 0;
     }
 
-    public int getTileIdInDirection(Direction direction) {
-        return sorroundingTilesIds.get(direction);
+    public void warp(Point point) {
+        x = point.x;
+        y = point.y;
+        this.currentTileOriginalType = getTileType(x, y);
+        detectSurroundings();
+        updateTilesTypes(x, y, x, y);
     }
 
-    private void updateTilesIds(int preX, int preY, int x, int y) {
-        int tilePreX = Math.round(((float) preX / TILE_SIZE));
-        int tilePreY = Math.round(((float) preY / TILE_SIZE));
-        int tileX = Math.round(((float) x / TILE_SIZE));
-        int tileY = Math.round(((float) y / TILE_SIZE));
-        accesibleTilesLayer.setTileId(tilePreX, tilePreY, currentTileOriginalId);
-        currentTileOriginalId = accesibleTilesLayer.getTileId(tileX, tileY);
-        accesibleTilesLayer.setTileId(tileX, tileY, identifier);
+    public WalkableType getTileTypeInDirection(Direction direction) {
+        return sorroundingTilesTypes.get(direction);
+    }
+
+    private void updateTilesTypes(int preX, int preY, int x, int y) {
+        setTileType(preX, preY, currentTileOriginalType);
+        currentTileOriginalType = getTileType(x, y);
+        setTileType(x, y, type);
     }
 
     private void detectSurroundings() {
-        int tileX = Math.round(((float) x / TILE_SIZE));
-        int tileY = Math.round(((float) y / TILE_SIZE));
-        sorroundingTilesIds.put(Direction.LEFT, accesibleTilesLayer.getTileId(tileX - 1, tileY));
-        sorroundingTilesIds.put(Direction.RIGHT, accesibleTilesLayer.getTileId(tileX + 1, tileY));
-        sorroundingTilesIds.put(Direction.UP, accesibleTilesLayer.getTileId(tileX, tileY - 1));
-        sorroundingTilesIds.put(Direction.DOWN, accesibleTilesLayer.getTileId(tileX, tileY + 1));
+        sorroundingTilesTypes.put(Direction.LEFT, getTileType(x - TILE_SIZE, y));
+        sorroundingTilesTypes.put(Direction.RIGHT, getTileType(x + TILE_SIZE, y));
+        sorroundingTilesTypes.put(Direction.UP, getTileType(x, y - TILE_SIZE));
+        sorroundingTilesTypes.put(Direction.DOWN, getTileType(x, y + TILE_SIZE));
     }
 
     private int movementSpan(Direction direction) {
-        switch (sorroundingTilesIds.get(direction)) {
-            case WALKABLE_BLOCK_ID:
+        switch (sorroundingTilesTypes.get(direction)) {
+            case walkable:
                 return 1;
-            case SURFABLE_BLOCK_ID:
+            case surfable:
                 return 0;
-            case UP_DOWN_BLOCK_ID:
+            case jump_down:
                 return direction == Direction.DOWN ? 2 : 0;
-            case RIGHT_LEFT_BLOCK_ID:
+            case jump_left:
                 return direction == Direction.LEFT ? 2 : 0;
-            case LEFT_RIGHT_BLOCK_ID:
+            case jump_right:
                 return direction == Direction.RIGHT ? 2 : 0;
-            case DOWN_UP_BLOCK_ID:
+            case jump_up:
                 return direction == Direction.UP ? 2 : 0;
             default:
                 return 0;
@@ -115,6 +105,31 @@ public class Position {
         return y;
     }
 
+    private WalkableType getTileType(int x, int y) {
+        int tileX = Math.round(((float) x / TILE_SIZE));
+        int tileY = Math.round(((float) y / TILE_SIZE));
+        int prod = tileX * tileY;
+        int walkableLayerIndex = mapCoordinator.getCurrentMap().getLayerIndex("walkable");
+        if(prod >= 0 && mapCoordinator.getCurrentMap().getTile(tileX, tileY,
+                walkableLayerIndex) != null && mapCoordinator.getCurrentMap().getTile(tileX, tileY,
+                walkableLayerIndex).containsProperty("type")) {
+            return WalkableType.valueOf(mapCoordinator.getCurrentMap().getTile(tileX, tileY,
+                    walkableLayerIndex).getProperty("type"));
+        } else {
+            return WalkableType.none;
+        }
+    }
+
+    private void setTileType(int x, int y, WalkableType type) {
+        int tileX = Math.round(((float) x / TILE_SIZE));
+        int tileY = Math.round(((float) y / TILE_SIZE));
+        int walkableLayerIndex = mapCoordinator.getCurrentMap().getLayerIndex("walkable");
+        if(mapCoordinator.getCurrentMap().getTile(tileX, tileY, walkableLayerIndex) != null) {
+            mapCoordinator.getCurrentMap().getTile(tileX, tileY,
+                    walkableLayerIndex).setProperty("type", type.name());
+        }
+    }
+
     public enum Direction {
         UP(3),
         DOWN(0),
@@ -125,5 +140,16 @@ public class Position {
         Direction(int spriteRawIndex) {
             this.spriteRawIndex = spriteRawIndex;
         }
+    }
+
+    public enum WalkableType {
+        none,
+        walkable,
+        surfable,
+        character,
+        jump_down,
+        jump_left,
+        jump_up,
+        jump_right
     }
 }

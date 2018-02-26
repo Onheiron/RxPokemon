@@ -38,11 +38,17 @@ public class PlayerControls {
                 .subscribe(new Consumer<ControlsSource.ControlEvent>() {
                     @Override
                     public void accept(ControlsSource.ControlEvent controlEvent) throws Exception {
-                        if(controlEvent.keyDown) {
+                        if (controlEvent.keyDown) {
                             keyPressed(controlEvent.key);
                         } else {
                             keyReleased(controlEvent.key);
                         }
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        System.out.println("Error observing player controls");
+                        throwable.printStackTrace();
                     }
                 });
     }

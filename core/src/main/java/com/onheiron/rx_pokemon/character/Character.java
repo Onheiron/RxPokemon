@@ -1,6 +1,7 @@
 package com.onheiron.rx_pokemon.character;
 
 import com.onheiron.rx_pokemon.camera.Focus;
+import com.onheiron.rx_pokemon.map.MapCoordinator;
 import com.onheiron.rx_pokemon.movement.MovementHandler;
 import com.onheiron.rx_pokemon.movement.MovementMode;
 import com.onheiron.rx_pokemon.movement.Position;
@@ -16,7 +17,10 @@ import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.ReplaySubject;
+
+import static com.onheiron.rx_pokemon.movement.Position.TILE_SIZE;
 
 /**
  * Created by carlo on 21/02/2018.
@@ -25,13 +29,16 @@ import io.reactivex.subjects.ReplaySubject;
 public abstract class Character extends Renderable implements Focus {
 
     protected final MovementHandler movementHandler;
+    protected final MapCoordinator mapCoordinator;
 
-    private final ReplaySubject<Point> positionSubject = ReplaySubject.create();
+    private final BehaviorSubject<Point> positionSubject = BehaviorSubject.create();
 
-    public Character(TileLayer movementLayer, Map<MovementMode, String> movementAssetsPaths,
-                     RenderSource renderSource, TimeSource timeSource, int identifier, int x, int y) {
+    public Character(MapCoordinator mapCoordinator, Map<MovementMode, String> movementAssetsPaths,
+                     RenderSource renderSource, TimeSource timeSource, int x, int y) {
         super(renderSource, new ArrayList<String>() {{ add("characters"); }});
-        movementHandler = new MovementHandler(movementLayer, movementAssetsPaths, identifier, x, y);
+        this.mapCoordinator = mapCoordinator;
+        movementHandler = new MovementHandler(mapCoordinator, movementAssetsPaths,
+                Position.WalkableType.character, x, y);
         positionSubject.onNext(new Point(Math.round(movementHandler.getX()),
                 Math.round(movementHandler.getY())));
         timeSource.observeTime()
@@ -39,6 +46,12 @@ public abstract class Character extends Renderable implements Focus {
                     @Override
                     public void accept(Float delta) throws Exception {
                         update(delta);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        System.out.println("Error observing character updates");
+                        throwable.printStackTrace();
                     }
                 });
     }
@@ -49,6 +62,16 @@ public abstract class Character extends Renderable implements Focus {
         movementHandler.move(requestedMovementMode, requestedDirection);
         positionSubject.onNext(new Point(Math.round(movementHandler.getX()),
                 Math.round(movementHandler.getY())));
+        Point currentPoint = new Point(Math.round(movementHandler.getX()), Math.round(movementHandler.getY()));
+        Point newPoint = mapCoordinator.checkWarp(currentPoint);
+        if(!newPoint.equals(currentPoint)) {
+            warp(newPoint);
+        }
+    }
+
+    private void warp(Point point) {
+        movementHandler.warp(point);
+        positionSubject.onNext(point);
     }
 
     @Override

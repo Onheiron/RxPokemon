@@ -2,12 +2,13 @@ package com.onheiron.rx_pokemon.player;
 
 import com.onheiron.rx_pokemon.character.Character;
 import com.onheiron.rx_pokemon.controls.PlayerControls;
+import com.onheiron.rx_pokemon.map.MapCoordinator;
 import com.onheiron.rx_pokemon.movement.MovementMode;
+import com.onheiron.rx_pokemon.movement.Position;
 import com.onheiron.rx_pokemon.render.RenderSource;
 import com.onheiron.rx_pokemon.time.TimeSource;
 
-import org.mini2Dx.tiled.TileLayer;
-
+import java.awt.Point;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -26,21 +27,26 @@ public class Player extends Character {
     private final PlayerControls controls;
 
     @Inject
-    public Player(@Named("walkable") TileLayer movementLayer,
+    public Player(MapCoordinator mapCoordinator,
                   @Named("player_boy1") Map<MovementMode, String> movementAssetsPaths,
                   TimeSource timeSource,
                   PlayerControls playerControls,
                   RenderSource renderSource) {
-        super(movementLayer, movementAssetsPaths, renderSource, timeSource, 0, STARTING_X, STARTING_Y);
+        super(mapCoordinator, movementAssetsPaths, renderSource, timeSource,  STARTING_X, STARTING_Y);
         this.controls = playerControls;
+    }
+
+    @Override
+    public void move(MovementMode requestedMovementMode, Position.Direction requestedDirection) {
+        super.move(requestedMovementMode, requestedDirection);
     }
 
     @Override
     public void update(float delta) {
         move(controls.getRequestedMovementMode(), controls.getRequestedDirection());
         if(controls.gerRequestedInteraction()) {
-            switch (movementHandler.getFacingTileId()) {
-                case 3:
+            switch (movementHandler.getFacingTileType()) {
+                case character:
                     System.out.println("Hi dude!");
                     break;
             }

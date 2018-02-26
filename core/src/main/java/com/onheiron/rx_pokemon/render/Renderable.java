@@ -20,6 +20,12 @@ public abstract class Renderable {
                     public void accept(RenderSource.GraphicUpdate graphicUpdate) throws Exception {
                         render(graphicUpdate);
                     }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        System.out.println("Error observing rendering...");
+                        throwable.printStackTrace();
+                    }
                 });
     }
 

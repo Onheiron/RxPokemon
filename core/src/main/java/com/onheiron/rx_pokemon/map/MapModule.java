@@ -1,12 +1,8 @@
 package com.onheiron.rx_pokemon.map;
 
-import com.badlogic.gdx.Gdx;
+import java.awt.Point;
+import java.util.HashMap;
 
-import org.mini2Dx.tiled.TileLayer;
-import org.mini2Dx.tiled.TiledMap;
-import org.mini2Dx.tiled.exception.TiledException;
-
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -20,20 +16,11 @@ public class MapModule {
 
     @Provides
     @Singleton
-    @Named("world")
-    TiledMap providesTiledMap() {
-        try {
-            return new TiledMap(Gdx.files.internal("map.tmx"));
-        } catch (TiledException e) {
-            e.printStackTrace();
-            return new TiledMap();
-        }
-    }
+    MapsDictionary providesMapDictionary() {
+        return new MapsDictionary(new HashMap<String, MapsDictionary.MapModel>() {{
+            put("map", new MapsDictionary.MapModel("map.tmx", "map", MapsDictionary.MapModel.MapType.OUTSIDE, new Point(13792, 13696)));
+            put("house_1", new MapsDictionary.MapModel("house_1.tmx", "house_1", MapsDictionary.MapModel.MapType.BUILDING, new Point(128, 256)));
 
-    @Provides
-    @Singleton
-    @Named("walkable")
-    TileLayer providesWalkableLayer(@Named("world") TiledMap map) {
-        return map.getTileLayer("walkable");
+        }});
     }
 }

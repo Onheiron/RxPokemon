@@ -3,12 +3,9 @@ package com.onheiron.rx_pokemon.map;
 import com.onheiron.rx_pokemon.render.RenderSource;
 import com.onheiron.rx_pokemon.render.Renderable;
 
-import org.mini2Dx.tiled.TiledMap;
-
 import java.util.ArrayList;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 /**
@@ -17,21 +14,22 @@ import javax.inject.Singleton;
 @Singleton
 public class TiledLayerRenderer extends Renderable {
 
-    private final TiledMap tiledMap;
+    private final MapCoordinator mapCoordinator;
 
     @Inject
-    protected TiledLayerRenderer(RenderSource renderSource, @Named("world")TiledMap tiledMap) {
+    protected TiledLayerRenderer(RenderSource renderSource, MapCoordinator mapCoordinator) {
         super(renderSource, new ArrayList<String>() {{
             add("ground");
             add("objects");
             add("overlay_1");
             add("overlay_2");
+            add("walkable");
         }});
-        this.tiledMap = tiledMap;
+        this.mapCoordinator = mapCoordinator;
     }
 
     @Override
     protected void render(RenderSource.GraphicUpdate graphicUpdate) {
-        tiledMap.draw(graphicUpdate.graphics, 0, 0, tiledMap.getLayerIndex(graphicUpdate.layer));
+        mapCoordinator.getCurrentMap().draw(graphicUpdate.graphics, 0, 0, graphicUpdate.layer.getIndex());
     }
 }
