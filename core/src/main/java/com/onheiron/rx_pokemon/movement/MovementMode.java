@@ -5,7 +5,6 @@ package com.onheiron.rx_pokemon.movement;
  */
 
 public enum MovementMode {
-    IDLE(0.f),
     WALK(1.f),
     RUN(2.0f),
     BIKE(4.0f),

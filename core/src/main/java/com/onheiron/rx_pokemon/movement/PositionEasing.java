@@ -1,8 +1,9 @@
 package com.onheiron.rx_pokemon.movement;
 
 import com.onheiron.rx_pokemon.ValueEasing;
+import com.onheiron.rx_pokemon.messages.MovementControlEvent;
 
-import java.awt.Point;
+import org.mini2Dx.core.geom.Point;
 
 /**
  * Created by carlo on 21/02/2018.
@@ -20,14 +21,14 @@ public class PositionEasing {
         yEasing = new ValueEasing(position.getY());
     }
 
-    public boolean move(MovementMode requestedMovementMode, Position.Direction requestedDirection) {
+    public boolean move(MovementControlEvent movementControlEvent) {
         if(isMoving()) return false;
-        direction = requestedDirection;
+        direction = movementControlEvent.direction;
         int fromX = position.getX();
         int fromY = position.getY();
-        if(requestedMovementMode != MovementMode.IDLE && position.move(requestedDirection)) {
-            xEasing = new ValueEasing(fromX, position.getX(), (int) (32.f / requestedMovementMode.speed));
-            yEasing = new ValueEasing(fromY, position.getY(), (int) (32.f / requestedMovementMode.speed));
+        if(movementControlEvent.moving && position.move(direction)) {
+            xEasing = new ValueEasing(fromX, position.getX(), (int) (32.f / movementControlEvent.movementMode.speed));
+            yEasing = new ValueEasing(fromY, position.getY(), (int) (32.f / movementControlEvent.movementMode.speed));
             return true;
         }
         return false;

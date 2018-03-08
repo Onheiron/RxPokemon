@@ -1,6 +1,7 @@
 package com.onheiron.rx_pokemon.map;
 
-import java.awt.Point;
+import org.mini2Dx.core.geom.Point;
+
 import java.util.Map;
 
 /**

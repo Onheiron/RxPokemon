@@ -1,14 +1,10 @@
 package com.onheiron.rx_pokemon.player;
 
+import com.onheiron.rx_pokemon.RxBus;
 import com.onheiron.rx_pokemon.character.Character;
-import com.onheiron.rx_pokemon.controls.PlayerControls;
-import com.onheiron.rx_pokemon.map.MapCoordinator;
+import com.onheiron.rx_pokemon.messages.MovementControlEvent;
 import com.onheiron.rx_pokemon.movement.MovementMode;
-import com.onheiron.rx_pokemon.movement.Position;
-import com.onheiron.rx_pokemon.render.RenderSource;
-import com.onheiron.rx_pokemon.time.TimeSource;
 
-import java.awt.Point;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -24,27 +20,16 @@ public class Player extends Character {
     private static final int STARTING_X = 13792;
     private static final int STARTING_Y = 13696;
 
-    private final PlayerControls controls;
-
     @Inject
-    public Player(MapCoordinator mapCoordinator,
-                  @Named("player_boy1") Map<MovementMode, String> movementAssetsPaths,
-                  TimeSource timeSource,
-                  PlayerControls playerControls,
-                  RenderSource renderSource) {
-        super(mapCoordinator, movementAssetsPaths, renderSource, timeSource,  STARTING_X, STARTING_Y);
-        this.controls = playerControls;
-    }
-
-    @Override
-    public void move(MovementMode requestedMovementMode, Position.Direction requestedDirection) {
-        super.move(requestedMovementMode, requestedDirection);
+    public Player(@Named("player_boy1") Map<MovementMode, String> movementAssetsPaths, RxBus bus) {
+        super(movementAssetsPaths,  bus, STARTING_X, STARTING_Y);
     }
 
     @Override
     public void update(float delta) {
-        move(controls.getRequestedMovementMode(), controls.getRequestedDirection());
-        if(controls.gerRequestedInteraction()) {
+        MovementControlEvent movementControlEvent = bus.value(MovementControlEvent.class);
+        move(movementControlEvent);
+        if(movementControlEvent.interaction) {
             switch (movementHandler.getFacingTileType()) {
                 case character:
                     System.out.println("Hi dude!");

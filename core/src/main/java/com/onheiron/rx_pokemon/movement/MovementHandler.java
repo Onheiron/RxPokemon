@@ -2,13 +2,13 @@ package com.onheiron.rx_pokemon.movement;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.onheiron.rx_pokemon.map.MapCoordinator;
+import com.onheiron.rx_pokemon.RxBus;
+import com.onheiron.rx_pokemon.messages.MovementControlEvent;
 
+import org.mini2Dx.core.geom.Point;
 import org.mini2Dx.core.graphics.Sprite;
 import org.mini2Dx.core.graphics.TextureRegion;
-import org.mini2Dx.tiled.TileLayer;
 
-import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,27 +24,27 @@ public class MovementHandler {
     private final Map<MovementMode, Sprite> movementSprites = new HashMap<MovementMode, Sprite>();
     private int stepStep = 0;
     private MovementMode movementMode = MovementMode.WALK;
-    protected final PositionEasing positionEasing;
+    private final PositionEasing positionEasing;
     private int stepAnimationStep = 0;
 
-    public MovementHandler(MapCoordinator mapCoordinator, Map<MovementMode, String> movementAssetsPaths, Position.WalkableType type, int x, int y) {
-        this.positionEasing = new PositionEasing(new Position(mapCoordinator, type, x, y));
+    public MovementHandler(RxBus bus, Map<MovementMode, String> movementAssetsPaths, int x, int y) {
+        this.positionEasing = new PositionEasing(new Position(bus, x, y));
         for (MovementMode movementMode : movementAssetsPaths.keySet()) {
             movementSprites.put(movementMode, new Sprite(new Texture(Gdx.files.internal(movementAssetsPaths.get(movementMode))),
                     CHARACHTER_PIXEL_WIDTH, CHARACHTER_PIXEL_HEIGHT));
         }
     }
 
-    public void move(MovementMode requestedMovementMode, Position.Direction requestedDirection) {
+    public void move(MovementControlEvent movementControlEvent) {
         if(!positionEasing.isMoving()) {
-            movementMode = requestedMovementMode;
+            movementMode = movementControlEvent.movementMode;
         }
         if (stepStep % Math.round((float) Position.TILE_SIZE / STEP_FRAME_COUNT) == 0) {
             stepAnimationStep = (stepAnimationStep + 1) % STEP_FRAME_COUNT;
         }
         stepStep++;
         stepStep = stepStep % Math.round((float) Position.TILE_SIZE / movementMode.speed);
-        positionEasing.move(requestedMovementMode, requestedDirection);
+        positionEasing.move(movementControlEvent);
     }
 
     public void warp(Point point) {
@@ -54,7 +54,7 @@ public class MovementHandler {
     }
 
     public TextureRegion getCurrentTextureRegion() {
-        if (movementMode != MovementMode.IDLE) {
+        if (positionEasing.isMoving()) {
             Texture textureToDraw = movementSprites.get(movementMode).getTexture();
             return new TextureRegion(textureToDraw, stepAnimationStep * Position.TILE_SIZE, positionEasing.getDirection().spriteRawIndex * 48, Position.TILE_SIZE, 46);
         } else {

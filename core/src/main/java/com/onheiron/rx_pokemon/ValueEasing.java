@@ -38,13 +38,4 @@ public class ValueEasing {
         current += step;
         return Math.round(current);
     }
-
-    public void revert() {
-        int currentTo = to;
-        to = from;
-        from = currentTo;
-        delta = -delta;
-        increasing = !increasing;
-        current = from;
-    }
 }
