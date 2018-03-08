@@ -1,12 +1,15 @@
 package com.onheiron.rx_pokemon.movement;
 
-import com.onheiron.rx_pokemon.map.MapCoordinator;
+import com.onheiron.rx_pokemon.RxBus;
+import com.onheiron.rx_pokemon.messages.TiledMapEvent;
 
-import org.mini2Dx.tiled.TileLayer;
+import org.mini2Dx.core.geom.Point;
+import org.mini2Dx.tiled.TiledMap;
 
-import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.reactivex.functions.Consumer;
 
 /**
  * Created by carlo on 21/02/2018.
@@ -18,14 +21,27 @@ public class Position {
 
     private int x,y;
     private WalkableType currentTileOriginalType;
+    private TiledMap currentTiledMap;
     private final WalkableType type;
-    private final MapCoordinator mapCoordinator;
     private final Map<Direction, WalkableType> sorroundingTilesTypes = new HashMap<Direction, WalkableType>();
 
-    public Position(MapCoordinator mapCoordinator, WalkableType type, int x, int y) {
+    public Position(RxBus bus, final int x, final int y) {
+        this.x = x;
+        this.y = y;
+        bus.register(TiledMapEvent.class)
+                .subscribe(new Consumer<TiledMapEvent>() {
+                    @Override
+                    public void accept(TiledMapEvent tiledMapEvent) throws Exception {
+                        currentTiledMap = tiledMapEvent.tiledMap;
+                        warp(new Point(x, y));
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        throwable.printStackTrace();
+                    }
+                });
         this.type = WalkableType.walkable;
-        this.mapCoordinator = mapCoordinator;
-        warp(new Point(x, y));
     }
 
     protected boolean move(Direction direction) {
@@ -54,8 +70,8 @@ public class Position {
     }
 
     public void warp(Point point) {
-        x = point.x;
-        y = point.y;
+        x = (int) point.x;
+        y = (int) point.y;
         this.currentTileOriginalType = getTileType(x, y);
         detectSurroundings();
         updateTilesTypes(x, y, x, y);
@@ -108,12 +124,11 @@ public class Position {
     private WalkableType getTileType(int x, int y) {
         int tileX = Math.round(((float) x / TILE_SIZE));
         int tileY = Math.round(((float) y / TILE_SIZE));
-        int prod = tileX * tileY;
-        int walkableLayerIndex = mapCoordinator.getCurrentMap().getLayerIndex("walkable");
-        if(prod >= 0 && mapCoordinator.getCurrentMap().getTile(tileX, tileY,
-                walkableLayerIndex) != null && mapCoordinator.getCurrentMap().getTile(tileX, tileY,
-                walkableLayerIndex).containsProperty("type")) {
-            return WalkableType.valueOf(mapCoordinator.getCurrentMap().getTile(tileX, tileY,
+        int walkableLayerIndex = currentTiledMap.getLayerIndex("walkable");
+        if(currentTiledMap.getTile(tileX, tileY, walkableLayerIndex) != null &&
+                currentTiledMap.getTile(tileX, tileY, walkableLayerIndex)
+                        .containsProperty("type")) {
+            return WalkableType.valueOf(currentTiledMap.getTile(tileX, tileY,
                     walkableLayerIndex).getProperty("type"));
         } else {
             return WalkableType.none;
@@ -123,10 +138,9 @@ public class Position {
     private void setTileType(int x, int y, WalkableType type) {
         int tileX = Math.round(((float) x / TILE_SIZE));
         int tileY = Math.round(((float) y / TILE_SIZE));
-        int walkableLayerIndex = mapCoordinator.getCurrentMap().getLayerIndex("walkable");
-        if(mapCoordinator.getCurrentMap().getTile(tileX, tileY, walkableLayerIndex) != null) {
-            mapCoordinator.getCurrentMap().getTile(tileX, tileY,
-                    walkableLayerIndex).setProperty("type", type.name());
+        int walkableLayerIndex = currentTiledMap.getLayerIndex("walkable");
+        if(currentTiledMap.getTile(tileX, tileY, walkableLayerIndex) != null) {
+            currentTiledMap.getTile(tileX, tileY, walkableLayerIndex).setProperty("type", type.name());
         }
     }
 

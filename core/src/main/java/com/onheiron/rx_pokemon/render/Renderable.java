@@ -1,8 +1,12 @@
 package com.onheiron.rx_pokemon.render;
 
+import com.onheiron.rx_pokemon.RxBus;
+import com.onheiron.rx_pokemon.messages.RenderLayerEvent;
+
 import java.util.List;
 
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Predicate;
 
 /**
  * Created by carlo on 24/02/2018.
@@ -10,24 +14,29 @@ import io.reactivex.functions.Consumer;
 
 public abstract class Renderable {
 
-    protected final RenderSource renderSource;
+    protected final RxBus bus;
 
-    protected Renderable(RenderSource renderSource, final List<String> renderOnLayers) {
-        this.renderSource = renderSource;
-        renderSource.observeLayer(renderOnLayers)
-                .subscribe(new Consumer<RenderSource.GraphicUpdate>() {
+    protected Renderable(RxBus bus, final List<String> renderOnLayers) {
+        this.bus = bus;
+        bus.register(RenderLayerEvent.class)
+                .filter(new Predicate<RenderLayerEvent>() {
                     @Override
-                    public void accept(RenderSource.GraphicUpdate graphicUpdate) throws Exception {
-                        render(graphicUpdate);
+                    public boolean test(RenderLayerEvent renderLayerEvent) throws Exception {
+                        return renderOnLayers.contains(renderLayerEvent.layer.getName());
+                    }
+                })
+                .subscribe(new Consumer<RenderLayerEvent>() {
+                    @Override
+                    public void accept(RenderLayerEvent renderLayerEvent) throws Exception {
+                        render(renderLayerEvent);
                     }
                 }, new Consumer<Throwable>() {
                     @Override
                     public void accept(Throwable throwable) throws Exception {
-                        System.out.println("Error observing rendering...");
                         throwable.printStackTrace();
                     }
                 });
     }
 
-    protected abstract void render(RenderSource.GraphicUpdate graphicUpdate);
+    protected abstract void render(RenderLayerEvent renderLayerEvent);
 }

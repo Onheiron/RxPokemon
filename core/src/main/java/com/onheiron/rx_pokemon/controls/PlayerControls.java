@@ -1,17 +1,27 @@
 package com.onheiron.rx_pokemon.controls;
 
 import com.badlogic.gdx.Input;
+import com.jakewharton.rxrelay2.BehaviorRelay;
+import com.onheiron.rx_pokemon.RxBus;
+import com.onheiron.rx_pokemon.messages.KeyEvent;
+import com.onheiron.rx_pokemon.messages.MovementControlEvent;
+import com.onheiron.rx_pokemon.movement.MovementMode;
 import com.onheiron.rx_pokemon.movement.Position;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function3;
 
 /**
  * Created by carlo on 21/02/2018.
@@ -19,9 +29,12 @@ import io.reactivex.functions.Consumer;
 @Singleton
 public class PlayerControls {
 
+    private final BehaviorRelay<MovementMode> movementModeRelay = BehaviorRelay.createDefault(MovementMode.WALK);
+    private final BehaviorRelay<Control> directionRelay = BehaviorRelay.createDefault(Control.MOVE_DOWN);
+    private final BehaviorRelay<Boolean> movingRelay = BehaviorRelay.createDefault(false);
+    private Disposable movingDelayDisposable;
+
     private final Stack<Control> directionalCommandsStack = new Stack<Control>();
-    private com.onheiron.rx_pokemon.movement.Position.Direction lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.DOWN;
-    private com.onheiron.rx_pokemon.movement.MovementMode movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.WALK;
     private boolean onBike, requestInteraction;
     private final Map<Integer, Control> keyMap = new HashMap<Integer, Control>() {{
         put(Input.Keys.W, Control.MOVE_UP);
@@ -33,27 +46,42 @@ public class PlayerControls {
     }};
 
     @Inject
-    public PlayerControls(ControlsSource controlsSource) {
-        controlsSource.observeControls(new ArrayList<Integer>(keyMap.keySet()))
-                .subscribe(new Consumer<ControlsSource.ControlEvent>() {
+    public PlayerControls(final RxBus bus) {
+        bus.register(KeyEvent.class)
+                .subscribe(new Consumer<KeyEvent>() {
                     @Override
-                    public void accept(ControlsSource.ControlEvent controlEvent) throws Exception {
-                        if (controlEvent.keyDown) {
-                            keyPressed(controlEvent.key);
+                    public void accept(KeyEvent keyEvent) throws Exception {
+                        if (keyEvent.pressed) {
+                            keyPressed(keyEvent.keyCode);
                         } else {
-                            keyReleased(controlEvent.key);
+                            keyReleased(keyEvent.keyCode);
                         }
                     }
                 }, new Consumer<Throwable>() {
                     @Override
                     public void accept(Throwable throwable) throws Exception {
-                        System.out.println("Error observing player controls");
                         throwable.printStackTrace();
                     }
                 });
+        Observable.combineLatest(movementModeRelay, directionRelay, movingRelay, new Function3<MovementMode, Control, Boolean, MovementControlEvent>() {
+            @Override
+            public MovementControlEvent apply(MovementMode movementMode, Control movementControl, Boolean moving) throws Exception {
+                return new MovementControlEvent(movementMode, controlToDirection(movementControl), moving, false);
+            }
+        }).subscribe(new Consumer<MovementControlEvent>() {
+            @Override
+            public void accept(MovementControlEvent movementControlEvent) throws Exception {
+                bus.send(movementControlEvent);
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                throwable.printStackTrace();
+            }
+        });
     }
 
-    public void keyPressed(int keyCode) {
+    private void keyPressed(int keyCode) {
         Control requestedControl = keyMap.get(keyCode);
         requestedControl = requestedControl != null ? requestedControl : Control.UNHANDLED;
         switch (requestedControl) {
@@ -65,7 +93,7 @@ public class PlayerControls {
                 updateDirection();
                 break;
             case RUN:
-                movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.RUN;
+                movementModeRelay.accept(MovementMode.RUN);
                 break;
             case TOGGLE_BIKE:
                 onBike = !onBike;
@@ -83,7 +111,7 @@ public class PlayerControls {
         }
     }
 
-    public void keyReleased(int keyCode) {
+    private void keyReleased(int keyCode) {
         Control requestedControl = keyMap.get(keyCode);
         requestedControl = requestedControl != null ? requestedControl : Control.UNHANDLED;
         switch (requestedControl) {
@@ -97,7 +125,7 @@ public class PlayerControls {
                 }
                 break;
             case RUN:
-                movementModeCommand = com.onheiron.rx_pokemon.movement.MovementMode.WALK;
+                movementModeRelay.accept(MovementMode.WALK);
                 break;
             case INTERACT:
                 requestInteraction = false;
@@ -106,37 +134,37 @@ public class PlayerControls {
     }
 
     private void updateDirection() {
-        if(directionalCommandsStack.isEmpty()) return;
-        switch (directionalCommandsStack.peek()) {
-            case MOVE_UP:
-                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.UP;
-                break;
-            case MOVE_DOWN:
-                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.DOWN;
-                break;
-            case MOVE_LEFT:
-                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.LEFT;
-                break;
-            case MOVE_RIGHT:
-                lastDirection = com.onheiron.rx_pokemon.movement.Position.Direction.RIGHT;
-                break;
+        if(movingDelayDisposable != null && !movingDelayDisposable.isDisposed()) {
+            movingDelayDisposable.dispose();
+        }
+        if(directionalCommandsStack.isEmpty()) {
+            movingRelay.accept(false);
+        } else {
+            movingDelayDisposable = Completable.complete()
+                    .delay(100, TimeUnit.MILLISECONDS)
+                    .subscribe(new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            movingRelay.accept(true);
+                        }
+                    }, new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            throwable.printStackTrace();
+                        }
+                    });
+            directionRelay.accept(directionalCommandsStack.peek());
         }
     }
 
-    public com.onheiron.rx_pokemon.movement.MovementMode getRequestedMovementMode() {
-        return shouldMove() ? movementModeCommand : com.onheiron.rx_pokemon.movement.MovementMode.IDLE;
-    }
-
-    public boolean gerRequestedInteraction() {
-        return requestInteraction;
-    }
-
-    public Position.Direction getRequestedDirection() {
-        return lastDirection;
-    }
-
-    private boolean shouldMove() {
-        return !directionalCommandsStack.isEmpty();
+    private Position.Direction controlToDirection(Control control) {
+        switch (control) {
+            case MOVE_RIGHT: return Position.Direction.RIGHT;
+            case MOVE_DOWN: return Position.Direction.DOWN;
+            case MOVE_LEFT: return Position.Direction.LEFT;
+            case MOVE_UP: return Position.Direction.UP;
+            default: return null;
+        }
     }
 
     public enum Control {

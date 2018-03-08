@@ -1,9 +1,8 @@
 package com.onheiron.rx_pokemon.camera;
 
-import com.onheiron.rx_pokemon.render.RenderSource;
+import com.onheiron.rx_pokemon.RxBus;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 /**
@@ -13,7 +12,7 @@ import javax.inject.Singleton;
 public class PlayerCamera extends Camera {
 
     @Inject
-    PlayerCamera(RenderSource renderSource, @Named("player") Focus focus) {
-        super(renderSource, focus);
+    PlayerCamera(RxBus bus) {
+        super(bus);
     }
 }
