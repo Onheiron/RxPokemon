@@ -9,8 +9,10 @@ import org.mini2Dx.core.geom.Point;
 public class PlayerPositionEvent {
 
     public final Point position;
+    public final boolean moving;
 
-    public PlayerPositionEvent(Point position) {
+    public PlayerPositionEvent(Point position, boolean moving) {
         this.position = position;
+        this.moving = moving;
     }
 }

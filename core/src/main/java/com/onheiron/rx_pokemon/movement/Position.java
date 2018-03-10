@@ -1,10 +1,9 @@
 package com.onheiron.rx_pokemon.movement;
 
 import com.onheiron.rx_pokemon.RxBus;
-import com.onheiron.rx_pokemon.messages.TiledMapEvent;
+import com.onheiron.rx_pokemon.messages.SurroundingTilesEvent;
 
 import org.mini2Dx.core.geom.Point;
-import org.mini2Dx.tiled.TiledMap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,20 +19,15 @@ public class Position {
     public final static int TILE_SIZE = 32;
 
     private int x,y;
-    private WalkableType currentTileOriginalType;
-    private TiledMap currentTiledMap;
-    private final WalkableType type;
-    private final Map<Direction, WalkableType> sorroundingTilesTypes = new HashMap<Direction, WalkableType>();
+    private Map<Position.Direction, Position.WalkableType> sorroundingTilesTypes = new HashMap<Position.Direction, Position.WalkableType>();
 
-    public Position(RxBus bus, final int x, final int y) {
-        this.x = x;
-        this.y = y;
-        bus.register(TiledMapEvent.class)
-                .subscribe(new Consumer<TiledMapEvent>() {
+    Position(RxBus bus, final int x, final int y) {
+        warp(new Point(x, y));
+        bus.register(SurroundingTilesEvent.class)
+                .subscribe(new Consumer<SurroundingTilesEvent>() {
                     @Override
-                    public void accept(TiledMapEvent tiledMapEvent) throws Exception {
-                        currentTiledMap = tiledMapEvent.tiledMap;
-                        warp(new Point(x, y));
+                    public void accept(SurroundingTilesEvent surroundingTilesEvent) throws Exception {
+                        sorroundingTilesTypes = surroundingTilesEvent.surroundings;
                     }
                 }, new Consumer<Throwable>() {
                     @Override
@@ -41,15 +35,11 @@ public class Position {
                         throwable.printStackTrace();
                     }
                 });
-        this.type = WalkableType.walkable;
     }
 
-    protected boolean move(Direction direction) {
-        detectSurroundings();
-        int movementSpan = movementSpan(direction);
+    boolean move(Direction direction) {
+        int movementSpan = movementSpan(sorroundingTilesTypes.get(direction), direction);
         if(movementSpan > 0) {
-            int preX = x;
-            int preY = y;
             switch (direction) {
                 case UP:
                     y -= TILE_SIZE * movementSpan;
@@ -64,38 +54,25 @@ public class Position {
                     x += TILE_SIZE * movementSpan;
                     break;
             }
-            updateTilesTypes(preX, preY, x, y);
         }
         return movementSpan > 0;
     }
 
-    public void warp(Point point) {
+    void warp(Point point) {
         x = (int) point.x;
         y = (int) point.y;
-        this.currentTileOriginalType = getTileType(x, y);
-        detectSurroundings();
-        updateTilesTypes(x, y, x, y);
     }
 
-    public WalkableType getTileTypeInDirection(Direction direction) {
-        return sorroundingTilesTypes.get(direction);
+    int getX() {
+        return x;
     }
 
-    private void updateTilesTypes(int preX, int preY, int x, int y) {
-        setTileType(preX, preY, currentTileOriginalType);
-        currentTileOriginalType = getTileType(x, y);
-        setTileType(x, y, type);
+    int getY() {
+        return y;
     }
 
-    private void detectSurroundings() {
-        sorroundingTilesTypes.put(Direction.LEFT, getTileType(x - TILE_SIZE, y));
-        sorroundingTilesTypes.put(Direction.RIGHT, getTileType(x + TILE_SIZE, y));
-        sorroundingTilesTypes.put(Direction.UP, getTileType(x, y - TILE_SIZE));
-        sorroundingTilesTypes.put(Direction.DOWN, getTileType(x, y + TILE_SIZE));
-    }
-
-    private int movementSpan(Direction direction) {
-        switch (sorroundingTilesTypes.get(direction)) {
+    private int movementSpan(WalkableType walkableType, Direction direction) {
+        switch (walkableType) {
             case walkable:
                 return 1;
             case surfable:
@@ -110,37 +87,6 @@ public class Position {
                 return direction == Direction.UP ? 2 : 0;
             default:
                 return 0;
-        }
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    private WalkableType getTileType(int x, int y) {
-        int tileX = Math.round(((float) x / TILE_SIZE));
-        int tileY = Math.round(((float) y / TILE_SIZE));
-        int walkableLayerIndex = currentTiledMap.getLayerIndex("walkable");
-        if(currentTiledMap.getTile(tileX, tileY, walkableLayerIndex) != null &&
-                currentTiledMap.getTile(tileX, tileY, walkableLayerIndex)
-                        .containsProperty("type")) {
-            return WalkableType.valueOf(currentTiledMap.getTile(tileX, tileY,
-                    walkableLayerIndex).getProperty("type"));
-        } else {
-            return WalkableType.none;
-        }
-    }
-
-    private void setTileType(int x, int y, WalkableType type) {
-        int tileX = Math.round(((float) x / TILE_SIZE));
-        int tileY = Math.round(((float) y / TILE_SIZE));
-        int walkableLayerIndex = currentTiledMap.getLayerIndex("walkable");
-        if(currentTiledMap.getTile(tileX, tileY, walkableLayerIndex) != null) {
-            currentTiledMap.getTile(tileX, tileY, walkableLayerIndex).setProperty("type", type.name());
         }
     }
 
