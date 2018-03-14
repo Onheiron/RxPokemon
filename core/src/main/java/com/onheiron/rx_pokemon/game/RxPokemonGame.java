@@ -2,6 +2,7 @@ package com.onheiron.rx_pokemon.game;
 
 import com.onheiron.rx_pokemon.RxBus;
 import com.onheiron.rx_pokemon.camera.PlayerCamera;
+import com.onheiron.rx_pokemon.character.CharacterPlacer;
 import com.onheiron.rx_pokemon.controls.PlayerControls;
 import com.onheiron.rx_pokemon.map.MapCoordinator;
 import com.onheiron.rx_pokemon.map.TiledLayerRenderer;
@@ -28,6 +29,7 @@ public class RxPokemonGame extends BasicGame {
     @Inject MapCoordinator mapCoordinator;
     @Inject PlayerControls playerControls;
     @Inject SurroundingsDetector surroundingsDetector;
+    @Inject CharacterPlacer characterPlacer;
 
     @Override
     public void initialise() {
