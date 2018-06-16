@@ -2,12 +2,14 @@ package com.onheiron.rx_pokemon.game;
 
 import com.onheiron.rx_pokemon.RxBus;
 import com.onheiron.rx_pokemon.camera.PlayerCamera;
+import com.onheiron.rx_pokemon.character.CharacterPlacer;
 import com.onheiron.rx_pokemon.controls.PlayerControls;
 import com.onheiron.rx_pokemon.map.MapCoordinator;
 import com.onheiron.rx_pokemon.map.TiledLayerRenderer;
 import com.onheiron.rx_pokemon.messages.KeyEvent;
 import com.onheiron.rx_pokemon.messages.RenderEvent;
 import com.onheiron.rx_pokemon.messages.UpdateEvent;
+import com.onheiron.rx_pokemon.movement.SurroundingsDetector;
 import com.onheiron.rx_pokemon.player.Player;
 
 import org.mini2Dx.core.game.BasicGame;
@@ -26,6 +28,8 @@ public class RxPokemonGame extends BasicGame {
     @Inject TiledLayerRenderer tiledLayerRenderer;
     @Inject MapCoordinator mapCoordinator;
     @Inject PlayerControls playerControls;
+    @Inject SurroundingsDetector surroundingsDetector;
+    @Inject CharacterPlacer characterPlacer;
 
     @Override
     public void initialise() {

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.onheiron.rx_pokemon.RxBus;
 import com.onheiron.rx_pokemon.messages.MovementControlEvent;
+import com.onheiron.rx_pokemon.messages.RenderLayerEvent;
 
 import org.mini2Dx.core.geom.Point;
 import org.mini2Dx.core.graphics.Sprite;
@@ -28,7 +29,7 @@ public class MovementHandler {
     private int stepAnimationStep = 0;
 
     public MovementHandler(RxBus bus, Map<MovementMode, String> movementAssetsPaths, int x, int y) {
-        this.positionEasing = new PositionEasing(new Position(bus, x, y));
+        this.positionEasing = new PositionEasing(new Position(bus, x, y), bus);
         for (MovementMode movementMode : movementAssetsPaths.keySet()) {
             movementSprites.put(movementMode, new Sprite(new Texture(Gdx.files.internal(movementAssetsPaths.get(movementMode))),
                     CHARACHTER_PIXEL_WIDTH, CHARACHTER_PIXEL_HEIGHT));
@@ -36,9 +37,7 @@ public class MovementHandler {
     }
 
     public void move(MovementControlEvent movementControlEvent) {
-        if(!positionEasing.isMoving()) {
-            movementMode = movementControlEvent.movementMode;
-        }
+        movementMode = movementControlEvent.movementMode;
         if (stepStep % Math.round((float) Position.TILE_SIZE / STEP_FRAME_COUNT) == 0) {
             stepAnimationStep = (stepAnimationStep + 1) % STEP_FRAME_COUNT;
         }
@@ -53,7 +52,7 @@ public class MovementHandler {
         positionEasing.warp(point);
     }
 
-    public TextureRegion getCurrentTextureRegion() {
+    private TextureRegion getCurrentTextureRegion() {
         if (positionEasing.isMoving()) {
             Texture textureToDraw = movementSprites.get(movementMode).getTexture();
             return new TextureRegion(textureToDraw, stepAnimationStep * Position.TILE_SIZE, positionEasing.getDirection().spriteRawIndex * 48, Position.TILE_SIZE, 46);
@@ -63,23 +62,8 @@ public class MovementHandler {
         }
     }
 
-    public Position.WalkableType getFacingTileType() {
-        return positionEasing.getFacingTileType();
-    }
-
-    public float getX() {
-        return positionEasing.getX();
-    }
-
-    public float getY() {
-        return positionEasing.getY();
-    }
-
-    public float moveAndGetX() {
-        return positionEasing.moveAndGetX();
-    }
-
-    public float moveAndGetY() {
-        return positionEasing.moveAndGetY();
+    public void render(RenderLayerEvent renderLayerEvent) {
+        renderLayerEvent.graphics.drawTextureRegion(getCurrentTextureRegion(), positionEasing.xEasing.get(),
+                positionEasing.yEasing.get() - 16);
     }
 }

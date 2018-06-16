@@ -2,7 +2,6 @@ package com.onheiron.rx_pokemon.character;
 
 import com.onheiron.rx_pokemon.RxBus;
 import com.onheiron.rx_pokemon.messages.MovementControlEvent;
-import com.onheiron.rx_pokemon.messages.PlayerPositionEvent;
 import com.onheiron.rx_pokemon.messages.RenderLayerEvent;
 import com.onheiron.rx_pokemon.messages.UpdateEvent;
 import com.onheiron.rx_pokemon.messages.WarpEvent;
@@ -23,7 +22,7 @@ import io.reactivex.functions.Consumer;
 
 public abstract class Character extends Renderable {
 
-    protected final MovementHandler movementHandler;
+    private final MovementHandler movementHandler;
 
     public Character(Map<MovementMode, String> movementAssetsPaths, RxBus bus, int x, int y) {
         super(bus, new ArrayList<String>() {{ add("characters"); }});
@@ -42,7 +41,6 @@ public abstract class Character extends Renderable {
                     }
                 });
         movementHandler = new MovementHandler(bus, movementAssetsPaths, x, y);
-        bus.send(new PlayerPositionEvent(new Point(Math.round(movementHandler.getX()), Math.round(movementHandler.getY()))));
         bus.register(UpdateEvent.class)
                 .subscribe(new Consumer<UpdateEvent>() {
                     @Override
@@ -60,10 +58,8 @@ public abstract class Character extends Renderable {
 
     public abstract void update(float delta);
 
-    public void move(MovementControlEvent movementControlEvent) {
+    protected void move(MovementControlEvent movementControlEvent) {
         movementHandler.move(movementControlEvent);
-        bus.send(new PlayerPositionEvent(new Point(Math.round(movementHandler.getX()),
-                Math.round(movementHandler.getY()))));
     }
 
     private void warp(Point point) {
@@ -73,8 +69,6 @@ public abstract class Character extends Renderable {
 
     @Override
     public void render(RenderLayerEvent renderLayerEvent) {
-        float x = movementHandler.moveAndGetX();
-        float y = movementHandler.moveAndGetY();
-        renderLayerEvent.graphics.drawTextureRegion(movementHandler.getCurrentTextureRegion(), x, y - 16);
+        movementHandler.render(renderLayerEvent);
     }
 }
